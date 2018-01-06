@@ -22,11 +22,23 @@ If your default distribution is Python 2, you have to explicitly tell [PIP](http
 
 ## Quickstart:
 
-### Retrieve and plot 3D skeleton data
+### Plot a simple categorical heatmap
 ```python
 import catheat
+import seaborn as sns
+
+# Get an example dataset from seaborn
+tips = sns.load_dataset('tips')
+
+# Plot the categorical columns as heatmap
+ax = catheat.heatmap( tips[['sex','smoker','day','time','size']],
+                      palette='Paired' )
+
+plt.show()
 
 ```
+
+<img src="https://user-images.githubusercontent.com/7161148/34643797-af6b040a-f322-11e7-98ad-db562cfa9951.png" width="650">
 
 ## License:
 This code is under GNU GPL V3
