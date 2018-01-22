@@ -61,7 +61,7 @@ def heatmap(data, cmap={}, palette='hls', ax=None, leg_pos='right', **sns_kws):
         unique_values = sorted( np.unique(data.astype(str)) )
     
     n_unique = len(unique_values)
-    
+    colors = None
     if not cmap:
         # Generate colors
         # If string
@@ -92,6 +92,8 @@ def heatmap(data, cmap={}, palette='hls', ax=None, leg_pos='right', **sns_kws):
         missing_entries = [ v for v in unique_values if v not in cmap ]
         if missing_entries:
             raise ValueError("Provided colormap lacks entries for: {0}".format(','.join(missing_entries)))
+        colors = [cmap[cat] for cat in unique_values]
+        
     else:
         raise TypeError('Unable to intepret colormap of type "{0}"'.format(type(cmap)))
 
@@ -107,9 +109,10 @@ def heatmap(data, cmap={}, palette='hls', ax=None, leg_pos='right', **sns_kws):
         numerical_data = vfunc(data)
 
     # Plot heatmap
+    cmap_object = mcolors.LinearSegmentedColormap.from_list('custom', colors, N=len(colors))
     sns_ax = sns.heatmap(   numerical_data, 
                             ax=ax, 
-                            cmap=colors, 
+                            cmap=cmap_object,                             
                             cbar=False, 
                             **sns_kws )
     
@@ -167,7 +170,6 @@ def _is_categorical(x):
                 return False
             except:
                 return True     
-
 
 
 
