@@ -62,7 +62,7 @@ def heatmap(data, cmap={}, palette='hls', ax=None, leg_pos='right', **sns_kws):
     
     n_unique = len(unique_values)
     
-    if not cmap:
+    if not cmap is None:
         # Generate colors
         # If string
         if isinstance(palette, str):
@@ -107,9 +107,11 @@ def heatmap(data, cmap={}, palette='hls', ax=None, leg_pos='right', **sns_kws):
         numerical_data = vfunc(data)
 
     # Plot heatmap
+    cmap_object = mcolors.LinearSegmentedColormap.from_list('custom', colors, N=len(colors))
+  
     sns_ax = sns.heatmap(   numerical_data, 
                             ax=ax, 
-                            cmap=colors, 
+                            cmap=cmap_object,                             
                             cbar=False, 
                             **sns_kws )
     
@@ -167,7 +169,6 @@ def _is_categorical(x):
                 return False
             except:
                 return True     
-
 
 
 
