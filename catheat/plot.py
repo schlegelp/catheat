@@ -18,11 +18,14 @@
 import seaborn as sns
 import pandas as pd
 import numpy as np
+import matplotlib.axes
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 
-def heatmap(data, cmap={}, palette='hls', ax=None, legend=True, leg_pos='right', **sns_kws):
+
+def heatmap(data, cmap={}, palette='hls', ax=None, legend=True,
+            leg_pos='right', leg_ax=None, leg_kws={}, **sns_kws):
     """ Class to plot categorical heatmap using seaborn.
 
     Parameters
@@ -34,20 +37,30 @@ def heatmap(data, cmap={}, palette='hls', ax=None, legend=True, leg_pos='right',
     cmap :      dict, optional
                 Colors for each category in the dataset. Missing colors will
                 be added from the palette.
-    palette :   matplotlib/seaborn color palette name or object
+    palette :   matplotlib/seaborn color palette name or object, optional
+                Palette to be used for heatmap.
     ax :        matplotlib ax, optional
     legend :    bool, optional
-                If True, plot legend
-    leg_pos :   {'right','top'}
-                Position of legend.
-    **sns_kws : seaborn.heatmap kwargs, optional
+                If True, plot legend.
+    leg_ax :    matplotlib axis, optional
+                By default, will add legend to same ax as heatmap. Use this
+                argument to explicitly set legend ax.
+    leg_pos :   {'right', 'top'}
+                Position of legend. Only relevant if legend ax is not
+                explicitly provided via `leg_ax`.
+    leg_kws :   dict, optional
+                Keyword arguments passed to plt.legend()
+
+    **sns_kws
+                Keyword argumentas passed through to `seaborn.heatmap()`
 
     Returns
     -------
-    seaborn.heatmap
+    matplotlib axis
+                    Heatmap axis as returned by seaborn.heatmap().
+    colormap :      dict
+                    Colormap mapping categorical values to RGB colours.
 
-    Examples
-    --------
     """
 
     if not isinstance(data, (pd.DataFrame, pd.Series, np.ndarray)):
@@ -100,73 +113,79 @@ def heatmap(data, cmap={}, palette='hls', ax=None, legend=True, leg_pos='right',
         numerical_data = vfunc(data)
 
     # Plot heatmap
-    cmap_object = mcolors.LinearSegmentedColormap.from_list('custom', colors, N=len(colors))
-    sns_ax = sns.heatmap(   numerical_data,
-                            ax=ax,
-                            cmap=cmap_object,
-                            cbar=False,
-                            **sns_kws )
+    cmap_object = mcolors.LinearSegmentedColormap.from_list('custom',
+                                                            colors,
+                                                            N=len(colors))
+    sns_ax = sns.heatmap(numerical_data,
+                         ax=ax,
+                         cmap=cmap_object,
+                         cbar=False,
+                         **sns_kws)
 
     # Add legend
     if legend:
-        patches = [mpatches.Patch(facecolor=cmap[v], edgecolor='black') for v in unique_values]
-
-        if leg_pos.lower() == 'top':
-            bbox_to_anchor = (0., 1.02, 1., .102)
-            ncol = n_unique
-        elif leg_pos.lower() == 'right':
-            bbox_to_anchor = (1.02, 0., 0.102, 1.)
-            ncol = 1
-
-            box = sns_ax.get_position()
+        if not leg_ax:
+            # Use the heatmap's ax if none provided
+            leg_ax = sns_ax
 
             # Make heatmap a bit less wide
-            sns_ax.set_position( [box.x0, box.y0, box.width*.9, box.height])
+            box = sns_ax.get_position()
+            sns_ax.set_position([box.x0, box.y0, box.width * .9, box.height])
 
+            # Add some default specific to using the heatmap for legend
+            if leg_pos.lower() == 'top':
+                leg_kws['bbox_to_anchor'] = (0., 1.02, 1., .102)
+                leg_kws['ncol'] = n_unique
+            elif leg_pos.lower() == 'right':
+                leg_kws['bbox_to_anchor'] = (1.02, 0., 0.102, 1.)
+                leg_kws['ncol'] = 1
+            leg_kws['fontsize'] = 8
+            leg_kws['mode'] = 'expand'
 
-        l = sns_ax.legend(      patches,
-                                unique_values,
-                                bbox_to_anchor=bbox_to_anchor,
-                                ncol=ncol,
-                                mode="expand",
-                                fontsize=8
-                                )
+        elif not isinstance(leg_ax, matplotlib.axes.Axes):
+            raise TypeError('leg_ax must be matplotlib axes, not "{}"'.format(type(leg_ax)))
 
-    return sns_ax
+        patches = [mpatches.Patch(facecolor=cmap[v], edgecolor='black') for v in unique_values]
+
+        _ = leg_ax.legend(patches,
+                          unique_values,
+                          **leg_kws)
+
+    return sns_ax, cmap
+
 
 def _is_categorical(x):
-    """ Returns True if data is categorical (i.e. not numerical)."""
+    """Return True if data is categorical (i.e. not numerical)."""
     if isinstance(x, pd.DataFrame):
         num_cols = x.mean(axis=0).index.tolist()
-        return [ col not in num_cols for col in x.columns ]
+        return [col not in num_cols for col in x.columns]
     elif isinstance(x, pd.Series):
         try:
             x.mean()
             return True
-        except:
+        except BaseException:
             return False
     elif isinstance(x, np.ndarray):
         if x.ndim > 2:
             raise ValueError('Can only process 1d or 2d arrays.')
         elif x.ndim == 2:
-            is_cat = []
+            cat_cols = []
             for i in range(x.shape[1]):
                 try:
-                    x[:,i].astype(int)
+                    x[:, i].astype(int)
                     cat_cols.append(False)
-                except:
+                except BaseException:
                     cat_cols.append(True)
         elif x.ndim == 1:
             try:
                 x.astype(int)
                 return False
-            except:
+            except BaseException:
                 return True
 
 
 def _gen_colors(pal, n):
-    """ Generate colours from provided palette.
-    """
+    """Generate colours from provided palette."""
 
     # If string
     if isinstance(pal, str):
@@ -174,16 +193,16 @@ def _gen_colors(pal, n):
         try:
             colors = sns.color_palette(pal, n)
         # If not, try getting the matplotlib palette
-        except:
+        except BaseException:
             pal = plt.get_cmap(pal)
-            colors = [ pal(i) for i in np.linspace(0,1,n) ]
+            colors = [pal(i) for i in np.linspace(0, 1, n)]
     # If palette provided
     elif isinstance(pal, mcolors.LinearSegmentedColormap):
-        colors = [ pal(i) for i in np.linspace(0,1,n) ]
+        colors = [pal(i) for i in np.linspace(0, 1, n)]
     # If list of colors
     elif isinstance(pal, (list, np.ndarray)):
         if len(pal) < n:
-            raise ValueError('Must provide at least as many colors as there are unique entries: {0}'.format(len(unique_values)))
+            raise ValueError('Must provide at least as many colors as there are unique entries: {0}'.format(len(n)))
         else:
             colors = pal
     else:
