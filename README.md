@@ -35,8 +35,8 @@ import seaborn as sns
 tips = sns.load_dataset('tips')
 
 # Plot the categorical columns as heatmap
-ax = catheat.heatmap( tips[['sex','smoker','day','time','size']],
-                      palette='Paired' )
+ax = catheat.heatmap(tips[['sex','smoker','day','time','size']],
+                     palette='Paired')
 
 plt.show()
 
