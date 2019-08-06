@@ -72,28 +72,28 @@ def heatmap(data, cmap={}, palette='hls', ax=None, legend=True,
 
     # Get unique values in dataset
     if isinstance(data, (pd.DataFrame, pd.Series)):
-        unique_values = sorted( np.unique(data.values.astype(str)) )
+        unique_values = sorted(np.unique(data.values.astype(str)))
     else:
-        unique_values = sorted( np.unique(data.astype(str)) )
+        unique_values = sorted(np.unique(data.astype(str)))
 
     n_unique = len(unique_values)
 
     # Prepare colors
     if not cmap:
         # Generate colors -> for the heatmap
-        colors = _gen_colors( palette, n_unique )
+        colors = _gen_colors(palette, n_unique)
 
         # We have colours, let's generate a cmap -> for the legend
-        cmap = { v : colors[i] for i,v in enumerate(unique_values) }
+        cmap = {v: colors[i] for i, v in enumerate(unique_values)}
     elif isinstance(cmap, dict):
         # Check for missing entries
-        missing_entries = [ v for v in unique_values if v not in cmap ]
+        missing_entries = [v for v in unique_values if v not in cmap]
 
         # Generate missing colors
-        colors = _gen_colors( palette, len(missing_entries) )
+        colors = _gen_colors(palette, len(missing_entries))
 
         # Update colormap
-        cmap.update( { v : colors[i] for i,v in enumerate(missing_entries) } )
+        cmap.update({v: colors[i] for i, v in enumerate(missing_entries)})
 
         # Generate colours in order -> for legend
         colors = [cmap[cat] for cat in unique_values]
@@ -102,7 +102,7 @@ def heatmap(data, cmap={}, palette='hls', ax=None, legend=True,
         raise TypeError('Unable to intepret colormap of type "{0}"'.format(type(cmap)))
 
     # Turn data into numeric values
-    vmap = { c : i for i, c in enumerate(unique_values) }
+    vmap = {c: i for i, c in enumerate(unique_values)}
 
     mapper = lambda t: vmap[str(t)]
     vfunc = np.vectorize(mapper)
